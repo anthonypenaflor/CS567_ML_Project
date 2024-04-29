@@ -78,29 +78,3 @@ def trim_to_shorter_length(texta, textb):
     texta = " ".join(texta.split(" ")[:shorter_length])
     textb = " ".join(textb.split(" ")[:shorter_length])
     return texta, textb
-
-
-def generate_batch_samples(raw_data, model, tokenizer, batch_size, sampling_kwargs, min_words=55):
-    """
-    NOTE: Samples are truncated to the length of the shorter text. This is to ensure that the samples are comparable.
-    """
-    data = {
-        "original": [],
-        "sampled": [],
-    }
-
-    for batch in range(len(raw_data) // batch_size):
-        print("Generating samples for batch", batch, "of", len(raw_data) // batch_size)
-        original_text = raw_data[batch * batch_size : (batch + 1) * batch_size]
-        sampled_text = sample_from_model(
-            original_text, model, tokenizer, sampling_kwargs, min_words=min_words
-        )
-
-        for o, s in zip(original_text, sampled_text):
-            o, s = trim_to_shorter_length(o, s)
-
-            # add to the data
-            data["original"].append(o)
-            data["sampled"].append(s)
-
-    return data
