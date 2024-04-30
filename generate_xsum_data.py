@@ -5,7 +5,7 @@ from data_generation_utils import sample_from_model, trim_to_shorter_length
 import json
 
 # For this one we may want to use non-instruction tuned models since we're not giving any instructions and we expect the models to complete the generation on their own
-MODEL_NAME = "meta-llama/Meta-Llama-3-8B"  # "mistralai/Mistral-7B-Instruct-v0.2"
+MODEL_NAME = "mistralai/Mistral-7B-v0.1"  # "meta-llama/Meta-Llama-3-8B"  # "mistralai/Mistral-7B-Instruct-v0.2"
 DOWNLOAD_DIR = "/home/dafirebanks/projects/dont-stop-prompting/models"
 BATCH_SIZE = 100
 SEED = 42
@@ -78,6 +78,8 @@ for batch in range(len(xsum_prompts) // BATCH_SIZE):
         all_data.append(nongen)
         all_data.append(gen)
 
-    with open(f"data/xsum-gen-model={MODEL_NAME}-n={N_DATA_SAMPLES}.jsonl", "a") as f:
+    with open(
+        f"data/xsum-gen-model={MODEL_NAME.split('/')[-1].lower()}-n={N_DATA_SAMPLES}.jsonl", "a"
+    ) as f:
         for item in all_data:
             f.write(json.dumps(item) + "\n")
