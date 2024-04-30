@@ -3,3 +3,4 @@ data/hewlett-foundation-data
 data/daigt
 preds/
 __pycache__/
+data/hewlett-n=1000-instruct=True-model=meta-llama-3-8b-instruct.jsonl
