@@ -1,3 +1,4 @@
+import pandas as pd
 from transformers import AutoModelForCausalLM, AutoTokenizer, set_seed
 from data_generation_utils import sample_from_model
 from collections import defaultdict

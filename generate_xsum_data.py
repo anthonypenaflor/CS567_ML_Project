@@ -78,6 +78,6 @@ for batch in range(len(xsum_prompts) // BATCH_SIZE):
         all_data.append(nongen)
         all_data.append(gen)
 
-    with open(f"data/xsum-gen-n={N_DATA_SAMPLES}.jsonl", "a") as f:
+    with open(f"data/xsum-gen-model={MODEL_NAME}-n={N_DATA_SAMPLES}.jsonl", "a") as f:
         for item in all_data:
             f.write(json.dumps(item) + "\n")
