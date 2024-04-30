@@ -1,10 +1,10 @@
-import pandas as pd
-from sklearn.model_selection import train_test_split
 from transformers import AutoModelForCausalLM, AutoTokenizer, set_seed
 from data_generation_utils import sample_from_model
 from collections import defaultdict
+import json
 
 # For this task, we can use instruction tuned models if we give the model the original essay prompts, else we should use a non-instruction tuned model.
+USE_ESSAY_INSTRUCTIONS = False
 N_ESSAYS_PER_PROMPT = 1000
 MODEL_NAME = "mistralai/Mistral-7B-Instruct-v0.2"
 DOWNLOAD_DIR = "/home/dafirebanks/projects/dont-stop-prompting/models"
@@ -62,43 +62,60 @@ sampling_kwargs = {
     "eos_token_id": tokenizer.eos_token_id,
 }
 
-set2fullessays = defaultdict(list)
+set2genessays = defaultdict(list)
+set2humanessays = defaultdict(list)
 
 # Generate examples in batches so we don't run out of memory
-for set, prompt in set2fullprompt.items():
-    h_prompts = [prompt] * N_ESSAYS_PER_PROMPT
+for essay_set, prompt in set2fullprompt.items():
+    if USE_ESSAY_INSTRUCTIONS:
+        h_prompts = [prompt] * N_ESSAYS_PER_PROMPT
+    else:
+        # Sample N_ESSAYS_PER_PROMPT essays from the dataset
+        subset = df[df["essay_set"] == essay_set]
+        h_prompts = subset.sample(min(N_ESSAYS_PER_PROMPT, len(subset)), random_state=SEED)[
+            "essay"
+        ].tolist()
+
     for batch in range(len(h_prompts) // BATCH_SIZE):
         print("Generating samples for batch", batch, "of", len(h_prompts) // BATCH_SIZE)
         batch_prompts = h_prompts[batch * BATCH_SIZE : (batch + 1) * BATCH_SIZE]
 
-        sampled_texts = sample_from_model(
-            batch_prompts, model, tokenizer, sampling_kwargs, min_words=55
-        )
-        set2fullessays[set].append(sampled_texts)
+        if USE_ESSAY_INSTRUCTIONS:  # Sample using the essay instructions
+            sampled_texts = sample_from_model(
+                batch_prompts, model, tokenizer, sampling_kwargs, min_words=55
+            )
+        else:  # Sample using the first n_prompt_tokens from each essay as the prompt
+            sampled_texts = sample_from_model(
+                batch_prompts, model, tokenizer, sampling_kwargs, min_words=55, n_prompt_tokens=30
+            )
+        set2genessays[essay_set].append(sampled_texts)
+        set2humanessays[essay_set].append(batch_prompts)
 
-# Create a dataframe containing original and generated essays
-print("Generated! Storing...")
-df_full = pd.DataFrame(columns=["essay_set", "essay_id", "essay", "generated"])
-for set, essays in set2fullessays.items():
-    df_set = df[df["essay_set"] == set].copy().iloc[: len(essays)]
-    # Add an extra column value of "0" for the original essays
-    df_set["generated"] = 0
-
-    # Add generated essays as additional rows
-    for i, essay in enumerate(essays):
-        row = {
-            "essay_set": set,
+    # Store the generated essays in a jsonl file
+    all_data = []
+    for i in range(len(set2genessays[essay_set])):
+        nongen = {
+            "essay": set2humanessays[essay_set][i],
+            "label": 0,
+            "prompt": set2fullprompt[essay_set],
+            "essay_set": essay_set,
             "essay_id": i,
-            "essay": essay,
-            "generated": 1,
-            "prompt": set2fullprompt[set],
         }
-        df_set = pd.concat([df_set, pd.DataFrame([row])], ignore_index=True)
+        gen = {
+            "essay": set2genessays[essay_set][i],
+            "label": 1,
+            "prompt": set2fullprompt[essay_set],
+            "essay_set": essay_set,
+            "essay_id": i,
+        }
 
-    df_full = pd.concat([df_full, df_set], ignore_index=True)
+        all_data.append(nongen)
+        all_data.append(gen)
 
-train, test = train_test_split(df_full, test_size=0.2, random_state=42)
-
-# Store
-train.to_json(f"data/hewlett-n={N_ESSAYS_PER_PROMPT}-train.jsonl", orient="records", lines=True)
-test.to_json(f"data/hewlett-n={N_ESSAYS_PER_PROMPT}-test.jsonl", orient="records", lines=True)
+    print("Generated! Storing...")
+    with open(
+        f"data/hewlett-n={N_ESSAYS_PER_PROMPT}-instruct={USE_ESSAY_INSTRUCTIONS}-essayset={essay_set}.jsonl",
+        "a",
+    ) as f:
+        for item in all_data:
+            f.write(json.dumps(item) + "\n")

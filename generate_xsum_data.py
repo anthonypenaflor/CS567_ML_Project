@@ -1,14 +1,13 @@
-import pandas as pd
-from sklearn.model_selection import train_test_split
 from datasets import load_dataset, load_from_disk
 from transformers import AutoModelForCausalLM, AutoTokenizer, set_seed
 import os
 from data_generation_utils import sample_from_model, trim_to_shorter_length
+import json
 
 # For this one we may want to use non-instruction tuned models since we're not giving any instructions and we expect the models to complete the generation on their own
-MODEL_NAME = "mistralai/Mistral-7B-Instruct-v0.2"
+MODEL_NAME = "meta-llama/Meta-Llama-3-8B"  # "mistralai/Mistral-7B-Instruct-v0.2"
 DOWNLOAD_DIR = "/home/dafirebanks/projects/dont-stop-prompting/models"
-BATCH_SIZE = 50
+BATCH_SIZE = 100
 SEED = 42
 XSUM_DIRPATH = "data/xsum"
 N_DATA_SAMPLES = 5000
@@ -57,7 +56,12 @@ for batch in range(len(xsum_prompts) // BATCH_SIZE):
     print("Generating samples for batch", batch, "of", len(xsum_prompts) // BATCH_SIZE)
     original_texts_batched = xsum_prompts[batch * BATCH_SIZE : (batch + 1) * BATCH_SIZE]
     sampled_text = sample_from_model(
-        original_texts_batched, model, tokenizer, sampling_kwargs, min_words=55
+        original_texts_batched,
+        model,
+        tokenizer,
+        sampling_kwargs,
+        min_words=55,
+        n_prompt_tokens=30,
     )
 
     for o, s in zip(original_texts_batched, sampled_text):
@@ -65,17 +69,15 @@ for batch in range(len(xsum_prompts) // BATCH_SIZE):
         data["original"].append(o)
         data["sampled"].append(s)
 
-# Turn into a jsonl format
-all_data = []
-for i in range(len(data["original"])):
-    nongen = {"text": data["original"][i], "label": 0}
-    gen = {"text": data["sampled"][i], "label": 1}
+    # Store the generated essays in a jsonl file
+    all_data = []
+    for i in range(len(data["original"])):
+        nongen = {"text": data["original"][i], "label": 0}
+        gen = {"text": data["sampled"][i], "label": 1}
 
-    all_data.append(nongen)
-    all_data.append(gen)
+        all_data.append(nongen)
+        all_data.append(gen)
 
-# Store
-df = pd.DataFrame.from_records(all_data)
-train, test = train_test_split(df, test_size=0.2, random_state=42)
-train.to_json(f"data/xsum-gen-n={N_DATA_SAMPLES}-train.jsonl", orient="records", lines=True)
-test.to_json(f"data/xsum-gen-n={N_DATA_SAMPLES}-test.jsonl", orient="records", lines=True)
+    with open(f"data/xsum-gen-n={N_DATA_SAMPLES}.jsonl", "a") as f:
+        for item in all_data:
+            f.write(json.dumps(item) + "\n")
