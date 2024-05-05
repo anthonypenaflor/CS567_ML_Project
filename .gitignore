@@ -5,4 +5,4 @@ data/hewlett-n=1000-instruct=True-model=meta-llama-3-8b-instruct.jsonl
 data/xsum-gen-model=mistral-7b-v0.1-n=5000.jsonl
 data/xsum-gen-n=5000-model=llama3-8b.jsonl
 *.DS_Store*
-.DS_Store
+data/.DS_Store
