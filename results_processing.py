@@ -1,11 +1,10 @@
 import pandas as pd
 import os
 from datetime import datetime
-from sklearn.metrics import ConfusionMatrixDisplay, confusion_matrix
+from sklearn.metrics import ConfusionMatrixDisplay, confusion_matrix, f1_score
 import matplotlib.pyplot as plt
 from llm_inference_utils import InferenceMode
 import numpy as np
-from sklearn.metrics import f1_score
 
 
 RESULTS_CSV_FILEPATH = "./results.csv"
