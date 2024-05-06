@@ -1,0 +1,5 @@
+This folder contains 3 dataset:
+1) CNN Dataset
+2) Essays Dataset
+3) Combined Dataset: Both of the above datasets have been combined in this file.
+P.S. Any final sentences in the generated essays that did not end with punctuation were removed.
