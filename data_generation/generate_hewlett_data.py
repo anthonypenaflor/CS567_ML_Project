@@ -45,9 +45,7 @@ set2fullprompt = {
 }
 
 # Load model
-model = AutoModelForCausalLM.from_pretrained(
-    MODEL_NAME, cache_dir=DOWNLOAD_DIR
-)  # , device_map="auto")
+model = AutoModelForCausalLM.from_pretrained(MODEL_NAME, cache_dir=DOWNLOAD_DIR, device_map="auto")
 tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME, cache_dir=DOWNLOAD_DIR)
 tokenizer.pad_token_id = tokenizer.eos_token_id
 
