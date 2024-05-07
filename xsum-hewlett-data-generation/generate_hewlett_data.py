@@ -120,6 +120,6 @@ for essay_set, prompt in set2fullprompt.items():
         all_data.append(gen)
 
     print("Generated! Storing...")
-    current_df = pd.read_csv(OUT_FILEPATH, index=None)
-    concat_df = pd.concat([current_df, pd.DataFrame(all_data)], ignore_index=True)
+    current_df = pd.read_csv(OUT_FILEPATH)
+    concat_df = pd.concat([current_df, pd.DataFrame(all_data, index=None)], ignore_index=True)
     concat_df.to_csv(OUT_FILEPATH, index=False)
