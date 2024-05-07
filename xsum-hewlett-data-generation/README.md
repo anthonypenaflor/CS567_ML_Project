@@ -1,8 +1,10 @@
 # Generating XSUM and Hewlett Data
 ## Setup
 
+Within a virtual environment, with GPUs:
+
 ```shell
-pip install requirements.txt
+pip install -r requirements.txt
 ```
 
 ## Running the generation scripts
@@ -12,7 +14,6 @@ pip install requirements.txt
 Parameters for controlling generation can be modified inside `generate_xsum_data.py`
 
 ```shell
-cd data_generation
 python generate_xsum_data.py
 ```
 
@@ -21,6 +22,5 @@ python generate_xsum_data.py
 Parameters for controlling generation can be modified inside `generate_hewlett_data.py`
 
 ```shell
-cd data_generation
 python generate_hewlett_data.py
 ```

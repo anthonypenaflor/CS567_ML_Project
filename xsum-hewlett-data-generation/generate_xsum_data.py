@@ -11,7 +11,7 @@ BATCH_SIZE = 10
 SEED = 42
 XSUM_DIRPATH = "data/xsum"
 N_DATA_SAMPLES = 100
-OUT_FILEPATH = f"xsum-gen-model={MODEL_NAME.split('/')[-1].lower()}-n={N_DATA_SAMPLES}.jsonl"
+OUT_FILEPATH = f"xsum-gen-model={MODEL_NAME.split('/')[-1].lower()}-n={N_DATA_SAMPLES}.csv"
 
 set_seed(SEED)
 
@@ -25,7 +25,7 @@ else:
     dataset.save_to_disk(XSUM_DIRPATH)
 
 # Create the output file if it doesn't exist
-current_df = pd.DataFrame(columns=["text", "label"]).to_csv(OUT_FILEPATH)
+current_df = pd.DataFrame(columns=["text", "label"], index=None).to_csv(OUT_FILEPATH)
 
 # Select a sample and generate prompts
 dataset = dataset.shuffle(seed=SEED)
@@ -84,5 +84,5 @@ for batch in range(len(xsum_prompts) // BATCH_SIZE):
 
     print("Generated! Storing...")
     current_df = pd.read_csv(OUT_FILEPATH)
-    concat_df = pd.concat([current_df, pd.DataFrame(all_data)])
+    concat_df = pd.concat([current_df, pd.DataFrame(all_data, index=None)], ignore_index=True)
     concat_df.to_csv(OUT_FILEPATH, index=False)
