@@ -6,12 +6,12 @@ import json
 
 # For this task, we can use instruction tuned models if we give the model the original essay prompts, else we should use a non-instruction tuned model.
 USE_ESSAY_INSTRUCTIONS = True
-N_ESSAYS_PER_PROMPT = 1000
-MODEL_NAME = "meta-llama/Meta-Llama-3-8B-Instruct"  # "meta-llama/Meta-Llama-3-8B"  # "mistralai/Mistral-7B-Instruct-v0.2"
-DOWNLOAD_DIR = "/home/dafirebanks/projects/dont-stop-prompting/models"
-CLEAN_DATA_FILEPATH = "data/hewlett-foundation-data/training_set_rel3_cleaned.csv"
+N_ESSAYS_PER_PROMPT = 10
+MODEL_NAME = "mistralai/Mistral-7B-Instruct-v0.2"  # "meta-llama/Meta-Llama-3-8B-Instruct"  # "meta-llama/Meta-Llama-3-8B"  # "mistralai/Mistral-7B-Instruct-v0.2"
+DOWNLOAD_DIR = "../models"
+CLEAN_DATA_FILEPATH = "../data/hewlett_original_cleaned_data.csv"
 SEED = 42
-BATCH_SIZE = 100
+BATCH_SIZE = 1
 
 ESSAYSET2PROMPT = {
     1: """More and more people use computers, but not everyone agrees that this benefits society. Those who support advances in technology believe that computers have a positive effect on people. They teach hand-eye coordination, give people the ability to learn about faraway places and people, and even allow people to talk online with other people. Others have different ideas. Some experts are concerned that people are spending too much time on their computers and less time exercising, enjoying nature, and interacting with family and friends. Write a letter to your local newspaper in which you state your opinion on the effects computers have on people. Persuade the readers to agree with you.""",
@@ -45,7 +45,9 @@ set2fullprompt = {
 }
 
 # Load model
-model = AutoModelForCausalLM.from_pretrained(MODEL_NAME, cache_dir=DOWNLOAD_DIR, device_map="auto")
+model = AutoModelForCausalLM.from_pretrained(
+    MODEL_NAME, cache_dir=DOWNLOAD_DIR
+)  # , device_map="auto")
 tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME, cache_dir=DOWNLOAD_DIR)
 tokenizer.pad_token_id = tokenizer.eos_token_id
 
