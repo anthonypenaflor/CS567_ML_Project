@@ -2,16 +2,16 @@ import pandas as pd
 from transformers import AutoModelForCausalLM, AutoTokenizer, set_seed
 from data_generation_utils import sample_from_model
 from collections import defaultdict
-import json
 
 # For this task, we can use instruction tuned models if we give the model the original essay prompts, else we should use a non-instruction tuned model.
 USE_ESSAY_INSTRUCTIONS = True
-N_ESSAYS_PER_PROMPT = 10
+N_ESSAYS_PER_PROMPT = 8
 MODEL_NAME = "mistralai/Mistral-7B-Instruct-v0.2"  # "meta-llama/Meta-Llama-3-8B-Instruct"  # "meta-llama/Meta-Llama-3-8B"  # "mistralai/Mistral-7B-Instruct-v0.2"
-DOWNLOAD_DIR = "../models"
-CLEAN_DATA_FILEPATH = "../data/hewlett_original_cleaned_data.csv"
+DOWNLOAD_DIR = "./models"
+CLEAN_DATA_FILEPATH = "data/hewlett_original_cleaned_data.csv"
 SEED = 42
-BATCH_SIZE = 1
+BATCH_SIZE = 4
+OUT_FILEPATH = f"hewlett-n={N_ESSAYS_PER_PROMPT}-instruct={USE_ESSAY_INSTRUCTIONS}-model={MODEL_NAME.split('/')[-1].lower()}.csv"
 
 ESSAYSET2PROMPT = {
     1: """More and more people use computers, but not everyone agrees that this benefits society. Those who support advances in technology believe that computers have a positive effect on people. They teach hand-eye coordination, give people the ability to learn about faraway places and people, and even allow people to talk online with other people. Others have different ideas. Some experts are concerned that people are spending too much time on their computers and less time exercising, enjoying nature, and interacting with family and friends. Write a letter to your local newspaper in which you state your opinion on the effects computers have on people. Persuade the readers to agree with you.""",
@@ -28,6 +28,11 @@ set_seed(SEED)
 
 # Load data
 df = pd.read_csv(CLEAN_DATA_FILEPATH)
+
+# Create the output file if it doesn't exist
+current_df = pd.DataFrame(columns=["text", "label", "prompt", "essay_set", "essay_id"]).to_csv(
+    OUT_FILEPATH
+)
 
 # For now, we'll only use the essays from essay_set 1, 2, 3, 4
 df = df[df["essay_set"].isin(ESSAYSET2PROMPT.keys())]
@@ -89,21 +94,21 @@ for essay_set, prompt in set2fullprompt.items():
             sampled_texts = sample_from_model(
                 batch_prompts, model, tokenizer, sampling_kwargs, min_words=55, n_prompt_tokens=30
             )
-        set2genessays[essay_set].append(sampled_texts)
-        set2humanessays[essay_set].append(batch_prompts)
+        set2genessays[essay_set].extend(sampled_texts)
+        set2humanessays[essay_set].extend(batch_prompts)
 
-    # Store the generated essays in a jsonl file
+    # Store the generated essays in a csv file
     all_data = []
     for i in range(len(set2genessays[essay_set])):
         nongen = {
-            "essay": set2humanessays[essay_set][i],
+            "text": set2humanessays[essay_set][i],
             "label": 0,
             "prompt": set2fullprompt[essay_set],
             "essay_set": essay_set,
             "essay_id": i,
         }
         gen = {
-            "essay": set2genessays[essay_set][i],
+            "text": set2genessays[essay_set][i],
             "label": 1,
             "prompt": set2fullprompt[essay_set],
             "essay_set": essay_set,
@@ -114,9 +119,6 @@ for essay_set, prompt in set2fullprompt.items():
         all_data.append(gen)
 
     print("Generated! Storing...")
-    with open(
-        f"data/hewlett-n={N_ESSAYS_PER_PROMPT}-instruct={USE_ESSAY_INSTRUCTIONS}-model={MODEL_NAME.split('/')[-1].lower()}.jsonl",
-        "a",
-    ) as f:
-        for item in all_data:
-            f.write(json.dumps(item) + "\n")
+    current_df = pd.read_csv(OUT_FILEPATH)
+    concat_df = pd.concat([current_df, pd.DataFrame(all_data)])
+    concat_df.to_csv(OUT_FILEPATH, index=False)

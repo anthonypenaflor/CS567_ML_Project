@@ -2,15 +2,16 @@ from datasets import load_dataset, load_from_disk
 from transformers import AutoModelForCausalLM, AutoTokenizer, set_seed
 import os
 from data_generation_utils import sample_from_model, trim_to_shorter_length
-import json
+import pandas as pd
 
 # For this one we may want to use non-instruction tuned models since we're not giving any instructions and we expect the models to complete the generation on their own
 MODEL_NAME = "mistralai/Mistral-7B-v0.1"  # "meta-llama/Meta-Llama-3-8B"  # "mistralai/Mistral-7B-Instruct-v0.2"
-DOWNLOAD_DIR = "/home/dafirebanks/projects/dont-stop-prompting/models"
-BATCH_SIZE = 100
+DOWNLOAD_DIR = "./models"
+BATCH_SIZE = 10
 SEED = 42
 XSUM_DIRPATH = "data/xsum"
-N_DATA_SAMPLES = 5000
+N_DATA_SAMPLES = 100
+OUT_FILEPATH = f"xsum-gen-model={MODEL_NAME.split('/')[-1].lower()}-n={N_DATA_SAMPLES}.jsonl"
 
 set_seed(SEED)
 
@@ -22,6 +23,9 @@ else:
     print(f"XSUM Dataset not found! Downloading and saving to {XSUM_DIRPATH}")
     dataset = load_dataset("EdinburghNLP/xsum")
     dataset.save_to_disk(XSUM_DIRPATH)
+
+# Create the output file if it doesn't exist
+current_df = pd.DataFrame(columns=["text", "label"]).to_csv(OUT_FILEPATH)
 
 # Select a sample and generate prompts
 dataset = dataset.shuffle(seed=SEED)
@@ -78,8 +82,7 @@ for batch in range(len(xsum_prompts) // BATCH_SIZE):
         all_data.append(nongen)
         all_data.append(gen)
 
-    with open(
-        f"data/xsum-gen-model={MODEL_NAME.split('/')[-1].lower()}-n={N_DATA_SAMPLES}.jsonl", "a"
-    ) as f:
-        for item in all_data:
-            f.write(json.dumps(item) + "\n")
+    print("Generated! Storing...")
+    current_df = pd.read_csv(OUT_FILEPATH)
+    concat_df = pd.concat([current_df, pd.DataFrame(all_data)])
+    concat_df.to_csv(OUT_FILEPATH, index=False)
