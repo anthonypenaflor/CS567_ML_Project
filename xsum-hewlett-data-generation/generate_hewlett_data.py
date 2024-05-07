@@ -8,7 +8,7 @@ USE_ESSAY_INSTRUCTIONS = True
 N_ESSAYS_PER_PROMPT = 8
 MODEL_NAME = "mistralai/Mistral-7B-Instruct-v0.2"  # "meta-llama/Meta-Llama-3-8B-Instruct"  # "meta-llama/Meta-Llama-3-8B"  # "mistralai/Mistral-7B-Instruct-v0.2"
 DOWNLOAD_DIR = "./models"
-CLEAN_DATA_FILEPATH = "data/hewlett_original_cleaned_data.csv"
+CLEAN_DATA_FILEPATH = "hewlett_original_cleaned_data.csv"
 SEED = 42
 BATCH_SIZE = 4
 OUT_FILEPATH = f"hewlett-n={N_ESSAYS_PER_PROMPT}-instruct={USE_ESSAY_INSTRUCTIONS}-model={MODEL_NAME.split('/')[-1].lower()}.csv"
@@ -73,19 +73,20 @@ set2humanessays = defaultdict(list)
 
 # Generate examples in batches so we don't run out of memory
 for essay_set, prompt in set2fullprompt.items():
+    # Sample N_ESSAYS_PER_PROMPT essays from the dataset
+    subset = df[df["essay_set"] == essay_set]
+    human_essays = subset.sample(min(N_ESSAYS_PER_PROMPT, len(subset)), random_state=SEED)[
+        "essay"
+    ].tolist()
     if USE_ESSAY_INSTRUCTIONS:
         h_prompts = [prompt] * N_ESSAYS_PER_PROMPT
     else:
-        # Sample N_ESSAYS_PER_PROMPT essays from the dataset
-        subset = df[df["essay_set"] == essay_set]
-        h_prompts = subset.sample(min(N_ESSAYS_PER_PROMPT, len(subset)), random_state=SEED)[
-            "essay"
-        ].tolist()
+        h_prompts = human_essays
 
     for batch in range(len(h_prompts) // BATCH_SIZE):
         print("Generating samples for batch", batch, "of", len(h_prompts) // BATCH_SIZE)
         batch_prompts = h_prompts[batch * BATCH_SIZE : (batch + 1) * BATCH_SIZE]
-
+        batch_essays = human_essays[batch * BATCH_SIZE : (batch + 1) * BATCH_SIZE]
         if USE_ESSAY_INSTRUCTIONS:  # Sample using the essay instructions
             sampled_texts = sample_from_model(
                 batch_prompts, model, tokenizer, sampling_kwargs, min_words=55
@@ -95,7 +96,7 @@ for essay_set, prompt in set2fullprompt.items():
                 batch_prompts, model, tokenizer, sampling_kwargs, min_words=55, n_prompt_tokens=30
             )
         set2genessays[essay_set].extend(sampled_texts)
-        set2humanessays[essay_set].extend(batch_prompts)
+        set2humanessays[essay_set].extend(batch_essays)
 
     # Store the generated essays in a csv file
     all_data = []
@@ -119,6 +120,6 @@ for essay_set, prompt in set2fullprompt.items():
         all_data.append(gen)
 
     print("Generated! Storing...")
-    current_df = pd.read_csv(OUT_FILEPATH)
-    concat_df = pd.concat([current_df, pd.DataFrame(all_data)])
+    current_df = pd.read_csv(OUT_FILEPATH, index=None)
+    concat_df = pd.concat([current_df, pd.DataFrame(all_data)], ignore_index=True)
     concat_df.to_csv(OUT_FILEPATH, index=False)
