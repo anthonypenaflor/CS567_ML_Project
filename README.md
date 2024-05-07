@@ -8,7 +8,7 @@ adversarial attacks to test model robustness.
 
 For more information, please read our project report:
 ```bash
-insert link
+https://github.com/anthonypenaflor/CS567_ML_Project/blob/main/report/CSCI_567_ML_Project_Report.pdf
 ```
 
 ### Table of Contents
