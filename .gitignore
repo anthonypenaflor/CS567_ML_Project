@@ -1,3 +1,4 @@
 .DS_Store
-additional_data/.DS_Store
+additional_data/*
 src/deberta-*
+deberta/microsoft-deberta-xlarge_fold0_best.pth
